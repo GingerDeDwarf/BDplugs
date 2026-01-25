@@ -1,7 +1,7 @@
 /**
  * @name AutoAnimate
  * @version 1.0.0
- * @author GingerTheDwarf
+ * @author GingerDeDwarf
  * @authorId 320111316994097164
  * @description Forces hover-only animations to play automatically when an animated asset is already available (avatars, server icons, banners, emojis, nameplates, role gradients etc.). May increase GPU usage. Note: Does not unlock Nitro assets.
  * @website https://github.com/GingerTheDwarf/BDplugs/AutoAnimate/
@@ -223,4 +223,5 @@ module.exports = class AutoAnimate {
             }
         });
     }
+
 };
