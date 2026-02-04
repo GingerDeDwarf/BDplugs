@@ -1,6 +1,6 @@
 /**
  * @name AutoAnimate
- * @version 1.0.0
+ * @version 1.0.1
  * @author GingerDeDwarf
  * @authorId 320111316994097164
  * @description Forces hover-only animations to play automatically when an animated asset is already available (avatars, server icons, banners, emojis, nameplates, role gradients etc.), with configurable settings. May increase GPU usage. Note: Does not unlock Nitro assets.
@@ -84,16 +84,16 @@ module.exports = class AutoAnimate {
     refresh() {
         const el = document.querySelector('[class*="wrapper"][class*="guilds"]');
         const inst = el && ReactUtils.getOwnerInstance(el);
-        if (!inst?.forceUpdate) return;
+        if (!inst) return;
         let revert;
         const key = Math.random();
         revert = Patcher.instead(inst, "render", (_this, args, original) => {
-            const out = original(...args);
-            revert?.();
+            const out = original.apply(_this, args);
+            revert();
             return React.createElement(React.Fragment, { key }, out);
         });
         inst.forceUpdate();
-    }
+    }    
     get iconModule() {
         this._iconModule ??= Webpack.getByKeys("getGuildIconURL");
         return this._iconModule;
