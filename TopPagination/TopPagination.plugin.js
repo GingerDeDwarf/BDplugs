@@ -1,19 +1,19 @@
 /**
  * @name TopPagination
  * @author GingerDeDwarf
- * @description Adds a second pagination control to the top of search results, with optional sticky mode and bottom pagination hiding.
- * @version 1.1.0
+ * @description Adds a second pagination control to the top of search results, with optional sticky mode and bottom pagination hiding. Also works in Mod-View users' messages lists.
+ * @version 1.1.1
  * @authorId 320111316994097164
  * @website https://github.com/GingerDeDwarf/BDplugs/
  * @source https://github.com/GingerDeDwarf/BDplugs/blob/main/TopPagination/TopPagination.plugin.js
  */
 const { Webpack, React, Patcher, Logger, ReactUtils, DOM, Data, UI } = new BdApi("TopPagination");
 const CSS_BASE = `
-[class*="searchResultsWrap"] [class*="scroller_"] { padding-top: 0; } 
+[class*="searchResultsWrap"] [class*="scroller_"] { padding-top: 0; }
+[class*="innerContainer"]:has([data-top-pagination]) { padding-top: 0;}
 [data-top-pagination] [class*="pageControlContainer"] { margin-top: 0; }
 `;
 const CSS_STICKY = `
-[class*="searchResultsWrap"] [class*="scroller_"] { padding-top: 0; }
 [data-top-pagination] { position: sticky; top: 0; z-index: 2; background: var(--background-base-lowest); }
 [data-top-pagination] ~ * { position: relative; z-index: 1; }
 `;
@@ -31,7 +31,7 @@ module.exports = class TopPagination {
         if (!this.validateModules()) return;
         this.createWrapperComponent();
         this.patchSearchResults();
-        this.forceRefreshSearchResults();
+        this.forceRefreshResults();
     }
     stop() {
         DOM.removeStyle();
@@ -39,12 +39,12 @@ module.exports = class TopPagination {
         this.modules = null;
         this.WrapperComponent = null;
         this.settings = null;
-        this.forceRefreshSearchResults();
+        this.forceRefreshResults();
         Logger.info("Stopped plugin");
     }
     findModules() {
         const { Filters } = Webpack;
-        const { PaginationWrapper } = Webpack.getMangled(Filters.bySource('Math.floor', 'pageSize', 'maxVisiblePages'),{ PaginationWrapper: m => typeof m === 'function' }) ?? {};
+        const { PaginationWrapper } = Webpack.getMangled(Filters.bySource('Math.floor', 'pageSize', 'maxVisiblePages'), { PaginationWrapper: m => typeof m === 'function' }) ?? {};
         const SearchResultsBody = Webpack.getModule(Filters.combine(Filters.bySource("paginationTotalCount"), m => m.$$typeof), { searchExports: true });
         let SearchPageSize;
         const src = SearchResultsBody?.type?.toString() || '';
@@ -110,8 +110,9 @@ module.exports = class TopPagination {
             });
         });
     }
-    forceRefreshSearchResults() {
-        const el = document.querySelector('[class*="searchResultsWrap"]')?.parentElement;
+    forceRefreshResults() {
+        const el = document.querySelector('[class*="searchResultsWrap"]')?.parentElement
+            || document.querySelector('[class*="sidebarContainer"]')?.parentElement;
         const inst = el && ReactUtils.getOwnerInstance(el);
         if (!inst) return;
         let revert;
