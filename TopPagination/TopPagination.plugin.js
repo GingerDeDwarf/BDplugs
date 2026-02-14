@@ -2,7 +2,7 @@
  * @name TopPagination
  * @author GingerDeDwarf
  * @description Adds a second pagination control to the top of search results, with optional sticky mode and bottom pagination hiding. Also works in Mod-View users' messages lists.
- * @version 1.1.1
+ * @version 1.1.2
  * @authorId 320111316994097164
  * @website https://github.com/GingerDeDwarf/BDplugs/
  * @source https://github.com/GingerDeDwarf/BDplugs/blob/main/TopPagination/TopPagination.plugin.js
@@ -77,8 +77,8 @@ module.exports = class TopPagination {
     }
     createWrapperComponent() {
         const { PaginationWrapper, SearchPageSize } = this.modules;
-        this.WrapperComponent = ({ children, search, onPageChange, renderPageWrapper }) => {
-            const totalCount = search?.totalResults;
+        this.WrapperComponent = ({ children, search, paginationTotalCount, onPageChange, renderPageWrapper }) => {
+            const totalCount = paginationTotalCount ?? search?.totalResults;
             const offset = search?.offset || 0;
             if (!totalCount || totalCount <= SearchPageSize) return children;
             return React.createElement(
@@ -101,9 +101,10 @@ module.exports = class TopPagination {
         const { SearchResultsBody } = this.modules;
         const WrapperComponent = this.WrapperComponent;
         Patcher.after(SearchResultsBody, "type", (_, [props], returnValue) => {
-            const { search, onPageChange, renderPageWrapper } = props;
+            const { search, onPageChange, renderPageWrapper, paginationTotalCount } = props;
             return React.createElement(WrapperComponent, {
                 search,
+                paginationTotalCount,
                 onPageChange,
                 renderPageWrapper,
                 children: returnValue
