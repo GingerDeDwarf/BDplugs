@@ -1,10 +1,10 @@
 /**
  * @name AutoAnimate
- * @version 1.0.1
+ * @version 1.0.2
  * @author GingerDeDwarf
  * @authorId 320111316994097164
  * @description Forces hover-only animations to play automatically when an animated asset is already available (avatars, server icons, banners, emojis, nameplates, role gradients etc.), with configurable settings. May increase GPU usage. Note: Does not unlock Nitro assets.
- * @website https://github.com/GingerDeDwarf/BDplugs/
+ * @website https://github.com/GingerDeDwarf/BDplugs/AutoAnimate/
  * @source https://github.com/GingerDeDwarf/BDplugs/blob/main/AutoAnimate/AutoAnimate.plugin.js
  */
 const { Patcher, Data, Webpack, UI, Logger, React, Utils, ReactUtils, Hooks } = new BdApi("AutoAnimate");
@@ -103,7 +103,7 @@ module.exports = class AutoAnimate {
         return this._nameplateModule;
     }
     get gradientModule() {
-        this._gradientModule ??= Webpack.getMangled(Webpack.Filters.bySource("Extended_Pictographic"), { useGradientStyle: fn => typeof fn === "function" && fn.toString().includes("animateGradient") && fn.toString().includes("useMemo") });
+        this._gradientModule ??= Webpack.getMangled(Webpack.Filters.bySource("--custom-gradient-color-1", "animateGradient"), { useGradientStyle: fn => typeof fn === "function" && fn.toString().includes("animateGradient") && fn.toString().includes("useMemo") });
         return this._gradientModule;
     }
     patchIconURLs() {
