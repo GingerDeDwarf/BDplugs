@@ -2,7 +2,7 @@
  * @name TopPagination
  * @author GingerDeDwarf
  * @description Adds a second pagination control to the top of search results, with optional sticky mode and bottom pagination hiding. Also works in Mod-View users' messages lists.
- * @version 1.1.2
+ * @version 1.1.3
  * @authorId 320111316994097164
  * @website https://github.com/GingerDeDwarf/BDplugs/
  * @source https://github.com/GingerDeDwarf/BDplugs/blob/main/TopPagination/TopPagination.plugin.js
@@ -23,11 +23,11 @@ module.exports = class TopPagination {
     modules = null;
     WrapperComponent = null;
     settings = null;
-    start() {
+    async start() {
         Logger.info("Starting plugin");
         this.settings = { ...DEFAULT_SETTINGS, ...Data.load("settings") };
         this.applyStyles();
-        this.modules = this.findModules();
+        this.modules = await this.findModules();
         if (!this.validateModules()) return;
         this.createWrapperComponent();
         this.patchSearchResults();
@@ -42,10 +42,10 @@ module.exports = class TopPagination {
         this.forceRefreshResults();
         Logger.info("Stopped plugin");
     }
-    findModules() {
+    async findModules() {
         const { Filters } = Webpack;
-        const { PaginationWrapper } = Webpack.getMangled(Filters.bySource('Math.floor', 'pageSize', 'maxVisiblePages'), { PaginationWrapper: m => typeof m === 'function' }) ?? {};
-        const SearchResultsBody = Webpack.getModule(Filters.combine(Filters.bySource("paginationTotalCount"), m => m.$$typeof), { searchExports: true });
+        const SearchResultsBody = await Webpack.waitForModule(Filters.combine(Filters.bySource("paginationTotalCount"), m => m.$$typeof),{ searchExports: true });
+        const { PaginationWrapper } = Webpack.getMangled(Filters.bySource('Math.floor', 'pageSize', 'maxVisiblePages', 'disablePaginationGap'), { PaginationWrapper: m => typeof m === 'function' }) ?? {};
         let SearchPageSize;
         const src = SearchResultsBody?.type?.toString() || '';
         const [, pageSizeKey] = src.match(/pageSize:\s*\w+\.(\w+)/) || [];
@@ -81,15 +81,17 @@ module.exports = class TopPagination {
             const totalCount = paginationTotalCount ?? search?.totalResults;
             const offset = search?.offset || 0;
             if (!totalCount || totalCount <= SearchPageSize) return children;
+            const currentPage = Math.floor(offset / SearchPageSize) + 1;
             return React.createElement(
                 React.Fragment,
                 null,
                 React.createElement('div', { 'data-top-pagination': true },
                     React.createElement(PaginationWrapper, {
-                        offset,
+                        currentPage,
                         totalCount,
                         pageSize: SearchPageSize,
-                        onPageChange,
+                        maxVisiblePages: 5,
+                        onPageChange: page => onPageChange(page - 1),
                         renderPageWrapper
                     })
                 ),
