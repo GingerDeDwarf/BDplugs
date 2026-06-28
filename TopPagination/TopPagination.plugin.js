@@ -2,7 +2,7 @@
  * @name TopPagination
  * @author GingerDeDwarf
  * @description Adds a second pagination control to the top of search results, with optional sticky mode and bottom pagination hiding. Also works in Mod-View users' messages lists.
- * @version 1.1.3
+ * @version 1.1.4
  * @authorId 320111316994097164
  * @website https://github.com/GingerDeDwarf/BDplugs/
  * @source https://github.com/GingerDeDwarf/BDplugs/blob/main/TopPagination/TopPagination.plugin.js
@@ -44,7 +44,7 @@ module.exports = class TopPagination {
     }
     async findModules() {
         const { Filters } = Webpack;
-        const SearchResultsBody = await Webpack.waitForModule(Filters.combine(Filters.bySource("paginationTotalCount"), m => m.$$typeof),{ searchExports: true });
+        const SearchResultsBody = await Webpack.waitForModule(Filters.combine(Filters.bySource("paginationTotalCount"), m => m.$$typeof), { searchExports: true });
         const { PaginationWrapper } = Webpack.getMangled(Filters.bySource('Math.floor', 'pageSize', 'maxVisiblePages', 'disablePaginationGap'), { PaginationWrapper: m => typeof m === 'function' }) ?? {};
         let SearchPageSize;
         const src = SearchResultsBody?.type?.toString() || '';
@@ -53,10 +53,19 @@ module.exports = class TopPagination {
             const mangled = Webpack.getMangled(Filters.byKeys('GuildFeatures'), { [pageSizeKey]: m => typeof m === 'number' && m > 0 && m <= 100 });
             SearchPageSize = mangled?.[pageSizeKey];
         }
+        const SearchActions = Webpack.getByKeys('fetchMessages', 'setSearchQuery');
+        const SearchContextStore = Webpack.Stores.SearchAutocompleteStore;
+        const SearchQueryStore = Webpack.Stores.SearchQueryStore;
+        if (!SearchActions || !SearchContextStore || !SearchQueryStore) {
+            Logger.warn("[TopPagination] Could not resolve search action/store modules; pagination will be disabled.");
+        }
         return {
             SearchResultsBody,
             PaginationWrapper,
-            SearchPageSize
+            SearchPageSize,
+            SearchActions,
+            SearchContextStore,
+            SearchQueryStore
         };
     }
     validateModules() {
@@ -103,7 +112,8 @@ module.exports = class TopPagination {
         const { SearchResultsBody } = this.modules;
         const WrapperComponent = this.WrapperComponent;
         Patcher.after(SearchResultsBody, "type", (_, [props], returnValue) => {
-            const { search, onPageChange, renderPageWrapper, paginationTotalCount } = props;
+            const { search, renderPageWrapper, paginationTotalCount } = props;
+            const onPageChange = typeof props.onPageChange === "function" ? props.onPageChange : this.buildOnPageChange(); // will onPageChange ever come back? :P
             return React.createElement(WrapperComponent, {
                 search,
                 paginationTotalCount,
@@ -112,6 +122,20 @@ module.exports = class TopPagination {
                 children: returnValue
             });
         });
+    }
+
+    buildOnPageChange() {
+        const { SearchActions: actions, SearchContextStore: ctxStore, SearchQueryStore: queryStore, SearchPageSize } = this.modules;
+        return (zeroBasedPage) => {
+            const searchContext = ctxStore.getSelectedSearchContext();
+            const stateId = searchContext.guildId ?? searchContext.channelId;
+            const searchQueryString = queryStore.getSearchResultsQueryString(stateId);
+            actions.fetchMessages({
+                searchContext,
+                searchQueryString,
+                offset: zeroBasedPage * SearchPageSize
+            });
+        };
     }
     forceRefreshResults() {
         const el = document.querySelector('[class*="searchResultsWrap"]')?.parentElement
