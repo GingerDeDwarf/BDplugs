@@ -2,7 +2,7 @@
  * @name TopPagination
  * @author GingerDeDwarf
  * @description Adds a second pagination control to the top of search results, with optional sticky mode and bottom pagination hiding. Also works in Mod-View users' messages lists.
- * @version 1.1.4
+ * @version 1.1.5
  * @authorId 320111316994097164
  * @website https://github.com/GingerDeDwarf/BDplugs/
  * @source https://github.com/GingerDeDwarf/BDplugs/blob/main/TopPagination/TopPagination.plugin.js
@@ -54,8 +54,9 @@ module.exports = class TopPagination {
             SearchPageSize = mangled?.[pageSizeKey];
         }
         const SearchActions = Webpack.getByKeys('fetchMessages', 'setSearchQuery');
-        const SearchContextStore = Webpack.Stores.SearchAutocompleteStore;
+        const SearchContextStore = Webpack.Stores.SelectedSearchContextStore;
         const SearchQueryStore = Webpack.Stores.SearchQueryStore;
+        const usePagination = Webpack.getModule(Filters.byStrings("isMaxVisiblePageWarningVisible", "paginationMaxVisiblePage"), { searchExports: true });
         if (!SearchActions || !SearchContextStore || !SearchQueryStore) {
             Logger.warn("[TopPagination] Could not resolve search action/store modules; pagination will be disabled.");
         }
@@ -65,7 +66,8 @@ module.exports = class TopPagination {
             SearchPageSize,
             SearchActions,
             SearchContextStore,
-            SearchQueryStore
+            SearchQueryStore,
+            usePagination
         };
     }
     validateModules() {
@@ -85,9 +87,11 @@ module.exports = class TopPagination {
         return true;
     }
     createWrapperComponent() {
-        const { PaginationWrapper, SearchPageSize } = this.modules;
+        const { PaginationWrapper, SearchPageSize, usePagination } = this.modules;
         this.WrapperComponent = ({ children, search, paginationTotalCount, onPageChange, renderPageWrapper }) => {
-            const totalCount = paginationTotalCount ?? search?.totalResults;
+            const limits = usePagination?.({ totalResults: search?.totalResults ?? 0, isSearching: search?.isSearching, offset: search?.offset ?? 0 });
+            renderPageWrapper ??= limits?.renderPageWrapper;
+            const totalCount = paginationTotalCount ?? limits?.paginationTotalCount ?? search?.totalResults;
             const offset = search?.offset || 0;
             if (!totalCount || totalCount <= SearchPageSize) return children;
             const currentPage = Math.floor(offset / SearchPageSize) + 1;
